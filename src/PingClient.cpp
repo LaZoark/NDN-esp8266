@@ -11,9 +11,15 @@
 const char* WIFI_SSID = __WIFI_SSID;
 const char* WIFI_PASS = __WIFI_PASSWORD;
 
-const char* PREFIX0 = "/ndn/edu/nycu/ping";   // 陽交
-const char* PREFIX2 = "/ndn/edu/nthu/ping";   // 清華
-const char* PREFIX1 = "/ndn/edu/ucla/ping";   // UCLA
+// NDN ping-server, please refer the following links:
+// https://gerrit.named-data.net/plugins/gitiles/ndn-tools/+/00aa181b4951fd5d9224e934ae08c95b1e167d37/tools/ping/README.md
+// https://www.lists.cs.ucla.edu/pipermail/nfd-dev/2014-August/000361.html
+// 
+const char* PREFIX0 = "/ndn/edu/arizona/ping";   
+const char* PREFIX1 = "/ndn/edu/memphis/ping";   
+const char* PREFIX2 = "/ndn/edu/ucla/ping";     // UCLA
+// const char* PREFIX0 = "/ndn/edu/nycu/ping";   // 陽交
+// const char* PREFIX2 = "/ndn/edu/nthu/ping";   // 清華
 
 esp8266ndn::UdpTransport transport;
 ndnph::Face face(transport);
@@ -72,5 +78,6 @@ void loop()
     printCounters(PREFIX0, client0);
     printCounters(PREFIX1, client1);
     printCounters(PREFIX2, client2);
+    Serial.println(F("-----------------------------"));
   }
 }
