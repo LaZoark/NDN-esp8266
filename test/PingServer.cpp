@@ -10,6 +10,15 @@
 const char* WIFI_SSID = __WIFI_SSID;
 const char* WIFI_PASS = __WIFI_PASSWORD;
 
+const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
+const uint16_t NDN_ROUTER_PORT = 6363;
+const uint8_t NDN_HMAC_KEY[] = {
+  0xaf, 0x4a, 0xb1, 0xd2, 0x52, 0x02, 0x7d, 0x67, 0x7d, 0x85, 0x14, 0x31, 0xf1, 0x0e, 0x0e, 0x1d,
+  0x92, 0xa9, 0xd4, 0x0a, 0x0f, 0xf4, 0x49, 0x90, 0x06, 0x7e, 0xf6, 0x50, 0xc8, 0x50, 0x2c, 0x6b,
+  0x1e, 0xbe, 0x00, 0x2d, 0x5c, 0xaf, 0xd9, 0xe1, 0xd3, 0xa5, 0x25, 0xe2, 0x72, 0xfb, 0xa7, 0xa7,
+  0xe4, 0xb0, 0xc9, 0x00, 0xc2, 0xfe, 0x58, 0xb4, 0x9f, 0x38, 0x0b, 0x45, 0xc9, 0x30, 0xfe, 0x26
+};
+
 ndnph::StaticRegion<1024> region;
 
 esp8266ndn::EthernetTransport transport0;
@@ -28,6 +37,11 @@ ndnph::transport::ForceEndpointId transport2w(transport2);
 ndnph::Face face2(transport2w);
 const char* PREFIX2 = "/ndn/edu/nthu/udpm/ping";
 ndnph::PingServer server2(ndnph::Name::parse(region, PREFIX2), face2);
+
+// void processInterest(void*, const ndnph::Interest& interest, uint64_t)
+// {
+//   server1.processInterest(interest);
+// }
 
 void setup()
 {
@@ -67,7 +81,21 @@ void setup()
     ESP.restart();
   }
 
-  ok = transport1.beginListen();
+  //#########
+  // const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
+  IPAddress routerIp;
+  if (!WiFi.hostByName(NDN_ROUTER_HOST, routerIp)) {
+    Serial.println("cannot resolve router IP");
+    ESP.restart();
+  }
+  ok = transport1.beginListen(6363, routerIp);
+  // transport.begin(routerIp, 6363, 6363);
+  // face1.onInterest(&processInterest, nullptr);
+  // g_face.setHmacKey(NDN_HMAC_KEY, sizeof(NDN_HMAC_KEY));
+
+  //#########
+
+  // ok = transport1.beginListen();
   if (!ok) {
     Serial.println(F("UDP unicast transport initialization failed"));
     ESP.restart();

@@ -71,7 +71,8 @@ void setup()
   // }
   // transport.beginTunnel(fchResponse.ip);
   
-  const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
+  // const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
+  const char* NDN_ROUTER_HOST = "192.168.1.227";
   uint16_t _remotePort = 6363;
   uint16_t _localPort = 6363;
   IPAddress routerIp;
@@ -92,7 +93,7 @@ void printCounters(const char *prefix, const ndnph::PingClient &client)
 void loop()
 {
   face.loop();
-  delay(3);
+  delay(1);
 
   static uint16_t i = 0;
   if (++i % 1024 == 0)
