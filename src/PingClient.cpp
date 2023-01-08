@@ -22,8 +22,9 @@ const char *PREFIX1 = "/ndn/edu/nycu/udp/ping";             // 陽交
 const char *PREFIX2 = "/ndn/edu/ucla/ping";                 // UCLA
 const char *PREFIX3 = "/ndn/edu/nthu/udpm/ping";            // 清華
 
+const char* NDN_ROUTER_HOST = "192.168.1.227";
+
 esp8266ndn::UdpTransport transport;
-// ndnph::Face face(transport);
 ndnph::Face face(transport);
 
 ndnph::StaticRegion<1024> region;
@@ -32,12 +33,18 @@ ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face);
 ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face);
 ndnph::PingClient client3(ndnph::Name::parse(region, PREFIX3), face);
 
+void blink_led(uint8_t led=LED_BUILTIN_AUX, int8_t times=3, int16_t miniseconds=40)
+{
+  for(int i=0; i<times; i++){
+    digitalWrite(led, LOW);
+    delay(miniseconds/2);
+    digitalWrite(led, HIGH);
+    delay(miniseconds/2);
+  }
+}
+
 void setup()
 {
-  // Serial.print('transport: ');
-  // Serial.println();
-  // Serial.print('face: ');
-  // Serial.println(face);
   Serial.begin(115200);
   Serial.println();
   esp8266ndn::setLogOutput(Serial);
@@ -51,9 +58,15 @@ void setup()
     Serial.println(F("WiFi connect failed"));
     ESP.restart();
   }
-  delay(1000);
+  // delay(1000);
 
 #if defined(ARDUINO_ARCH_ESP8266)
+  pinMode(LED_BUILTIN_AUX, OUTPUT);     // gpio 16
+  pinMode(LED_BUILTIN, OUTPUT);         // gpio 2
+  blink_led(LED_BUILTIN, 2, 100);
+  blink_led(LED_BUILTIN_AUX, 1, 150);
+  blink_led(LED_BUILTIN, 1, 100);
+  blink_led(LED_BUILTIN_AUX, 2, 150);
   BearSSL::WiFiClientSecure fchSocketClient;
   fchSocketClient.setInsecure();
 #elif defined(ARDUINO_ARCH_ESP32)
@@ -72,7 +85,6 @@ void setup()
   // transport.beginTunnel(fchResponse.ip);
   
   // const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
-  const char* NDN_ROUTER_HOST = "192.168.1.227";
   uint16_t _remotePort = 6363;
   uint16_t _localPort = 6363;
   IPAddress routerIp;
@@ -83,26 +95,61 @@ void setup()
   transport.beginTunnel(routerIp, _remotePort, _localPort);
 }
 
-void printCounters(const char *prefix, const ndnph::PingClient &client)
+uint32_t printCounters(const char *prefix, const ndnph::PingClient &client)
 {
   auto cnt = client.readCounters();
-  Serial.printf("%8dI %8dD %3.3f%% %s\n", static_cast<int>(cnt.nTxInterests),
-                static_cast<int>(cnt.nRxData), 100.0 * cnt.nRxData / cnt.nTxInterests, prefix);
+  // Serial.printf("%6dI %6dD %3.2f%% %s\n", static_cast<int>(cnt.nTxInterests),
+  Serial.printf("[I/D]: %5d/%-5d %3.2f%% %s\n", static_cast<int>(cnt.nTxInterests),
+      static_cast<int>(cnt.nRxData), 100.0 * cnt.nRxData / cnt.nTxInterests, prefix);
+
+  return cnt.nRxData;
 }
+
+uint32_t nRxData_0 = 0;
+uint32_t nRxData_1 = 0;
+uint32_t nRxData_2 = 0;
+uint32_t nRxData_3 = 0;
+uint32_t temp = 0;
 
 void loop()
 {
   face.loop();
-  delay(1);
+  delayMicroseconds(1000);
+
+  // temp = nRxData_1;
 
   static uint16_t i = 0;
   if (++i % 1024 == 0)
   {
-    printCounters(PREFIX0, client0);
-    printCounters(PREFIX1, client1);
-    printCounters(PREFIX2, client2);
-    printCounters(PREFIX3, client3);
-    Serial.println(F("---------------------------------"));
+    nRxData_0 = printCounters(PREFIX0, client0);
+    nRxData_1 = printCounters(PREFIX1, client1);
+    nRxData_2 = printCounters(PREFIX2, client2);
+    nRxData_3 = printCounters(PREFIX3, client3);
+    if (++temp <= nRxData_1){
+      temp = nRxData_1;
+      nRxData_1 = 1;
+    }else{
+      nRxData_1 = 0;
+      temp--;
+    }
+    Serial.print(F("----------------"));
+    Serial.print(F("["));    Serial.print(nRxData_0);
+    Serial.print(F(", "));  Serial.print(nRxData_1);
+    Serial.print(F(", "));  Serial.print(nRxData_2);
+    Serial.print(F(", "));  Serial.print(nRxData_3);
+    Serial.println(F("]----------------"));
+    // Serial.print(F(", temp="));  Serial.print(temp);
+
+
+    if (nRxData_1)
+    {
+      blink_led(LED_BUILTIN, 1, 100);
+      blink_led(LED_BUILTIN_AUX, 2, 20);
+    }
+    // nRxData_0 = 0;
+    // nRxData_1 = 0;
+    // nRxData_2 = 0;
+    // nRxData_3 = 0;
   }
 }
 
