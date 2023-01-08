@@ -14,23 +14,22 @@ ndnph::StaticRegion<1024> region;
 
 esp8266ndn::EthernetTransport transport0;
 ndnph::Face face0(transport0);
-const char* PREFIX0 = "/example/esp8266/ether/ping";
+const char* PREFIX0 = "/demo/esp8266/ether/ping";
 ndnph::PingServer server0(ndnph::Name::parse(region, PREFIX0), face0);
 
 std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
 esp8266ndn::UdpTransport transport1(udpBuffer);
 ndnph::Face face1(transport1);
-const char* PREFIX1 = "/example/esp8266/udp/ping";
+const char* PREFIX1 = "/demo/esp8266/udp/ping";
 ndnph::PingServer server1(ndnph::Name::parse(region, PREFIX1), face1);
 
 esp8266ndn::UdpTransport transport2(udpBuffer);
 ndnph::transport::ForceEndpointId transport2w(transport2);
 ndnph::Face face2(transport2w);
-const char* PREFIX2 = "/example/esp8266/udpm/ping";
+const char* PREFIX2 = "/demo/esp8266/udpm/ping";
 ndnph::PingServer server2(ndnph::Name::parse(region, PREFIX2), face2);
 
-void
-setup()
+void setup()
 {
   Serial.begin(115200);
   Serial.println();
@@ -81,7 +80,7 @@ setup()
   }
 
   Serial.println(F("Please register prefixes on your router:"));
-  Serial.println(F("nfdc route add /example/esp8266/ether [ETHER-MCAST-FACEID]"));
+  Serial.println(F("nfdc route add /demo/esp8266/ether [ETHER-MCAST-FACEID]"));
 #if defined(ARDUINO_ARCH_ESP8266)
   for (auto a : addrList) {
     if (a.isV4()) {
@@ -101,13 +100,13 @@ setup()
   Serial.print(WiFi.localIP());
   Serial.println(F(":6363"));
 #endif
-  Serial.println(F("nfdc route add /example/esp8266/udp [UDP-UNICAST-FACEID]"));
-  Serial.println(F("nfdc route add /example/esp8266/udpm [UDP-MCAST-FACEID]"));
+  Serial.println(F("nfdc route add /demo/esp8266/udp [UDP-UNICAST-FACEID]"));
+  Serial.println(F("nfdc route add /demo/esp8266/udpm [UDP-MCAST-FACEID]"));
   Serial.println();
   Serial.println(F("Then you can ping:"));
-  Serial.println(F("ndnping /example/esp8266/ether"));
-  Serial.println(F("ndnping /example/esp8266/udp"));
-  Serial.println(F("ndnping /example/esp8266/udpm"));
+  Serial.println(F("ndnping /demo/esp8266/ether"));
+  Serial.println(F("ndnping /demo/esp8266/udp"));
+  Serial.println(F("ndnping /demo/esp8266/udpm"));
   Serial.println();
 }
 

@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "NDN",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"type_traits": "cpp"
+		}
+	}
+}
