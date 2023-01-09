@@ -10,14 +10,8 @@
 const char* WIFI_SSID = __WIFI_SSID;
 const char* WIFI_PASS = __WIFI_PASSWORD;
 
-const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
-const uint16_t NDN_ROUTER_PORT = 6363;
-const uint8_t NDN_HMAC_KEY[] = {
-  0xaf, 0x4a, 0xb1, 0xd2, 0x52, 0x02, 0x7d, 0x67, 0x7d, 0x85, 0x14, 0x31, 0xf1, 0x0e, 0x0e, 0x1d,
-  0x92, 0xa9, 0xd4, 0x0a, 0x0f, 0xf4, 0x49, 0x90, 0x06, 0x7e, 0xf6, 0x50, 0xc8, 0x50, 0x2c, 0x6b,
-  0x1e, 0xbe, 0x00, 0x2d, 0x5c, 0xaf, 0xd9, 0xe1, 0xd3, 0xa5, 0x25, 0xe2, 0x72, 0xfb, 0xa7, 0xa7,
-  0xe4, 0xb0, 0xc9, 0x00, 0xc2, 0xfe, 0x58, 0xb4, 0x9f, 0x38, 0x0b, 0x45, 0xc9, 0x30, 0xfe, 0x26
-};
+// const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
+const char* NDN_ROUTER_HOST = "192.168.1.227";  // server-esp8266
 
 ndnph::StaticRegion<1024> region;
 
@@ -38,10 +32,15 @@ ndnph::Face face2(transport2w);
 const char* PREFIX2 = "/ndn/edu/nthu/udpm/ping";
 ndnph::PingServer server2(ndnph::Name::parse(region, PREFIX2), face2);
 
-// void processInterest(void*, const ndnph::Interest& interest, uint64_t)
-// {
-//   server1.processInterest(interest);
-// }
+void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
+{
+  for(int i=0; i<times; i++){
+    digitalWrite(led, LOW);
+    delay(miniseconds/2);
+    digitalWrite(led, HIGH);
+    delay(miniseconds/2);
+  }
+}
 
 void setup()
 {
@@ -57,18 +56,31 @@ void setup()
     Serial.println(F("WiFi connect failed"));
     ESP.restart();
   }
-#if defined(ARDUINO_ARCH_ESP8266) && LWIP_IPV6
-  { // wait until no new address showing up in 1000ms
-    size_t nAddrPrev = 0, nAddr = 0;
-    do {
-      delay(1000);
-      nAddrPrev = nAddr;
-      nAddr = 0;
-      for (auto a : addrList) {
-        (void)a;
-        ++nAddr;
-      }
-    } while (nAddrPrev == nAddr);
+
+#if defined(ARDUINO_ARCH_ESP8266)
+  {// wait until no new address showing up in 1000ms
+    pinMode(LED_BUILTIN_AUX, OUTPUT); // gpio 16
+    pinMode(LED_BUILTIN, OUTPUT);     // gpio 2
+    blink_led(LED_BUILTIN, 2, 100);
+    blink_led(LED_BUILTIN_AUX, 1, 150);
+    blink_led(LED_BUILTIN, 1, 100);
+    blink_led(LED_BUILTIN_AUX, 2, 150);
+#if defined(LWIP_IPV6)
+    {
+      size_t nAddrPrev = 0, nAddr = 0;
+      do
+      {
+        delay(1000);
+        nAddrPrev = nAddr;
+        nAddr = 0;
+        for (auto a : addrList)
+        {
+          (void)a;
+          ++nAddr;
+        }
+      } while (nAddrPrev == nAddr);
+    }
+#endif
   }
 #else
   delay(1000);
@@ -81,27 +93,21 @@ void setup()
     ESP.restart();
   }
 
-  //#########
-  // const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
   IPAddress routerIp;
   if (!WiFi.hostByName(NDN_ROUTER_HOST, routerIp)) {
     Serial.println("cannot resolve router IP");
     ESP.restart();
   }
-  ok = transport1.beginListen(6363, routerIp);
-  // transport.begin(routerIp, 6363, 6363);
-  // face1.onInterest(&processInterest, nullptr);
-  // g_face.setHmacKey(NDN_HMAC_KEY, sizeof(NDN_HMAC_KEY));
-
-  //#########
 
   // ok = transport1.beginListen();
+  ok = transport1.beginListen(6363, routerIp);
   if (!ok) {
     Serial.println(F("UDP unicast transport initialization failed"));
     ESP.restart();
   }
 
-  ok = transport2.beginMulticast(WiFi.localIP());
+  // ok = transport2.beginMulticast(WiFi.localIP());
+  ok = transport2.beginMulticast(routerIp);
   if (!ok) {
     Serial.println(F("UDP multicast transport initialization failed"));
     ESP.restart();
@@ -138,15 +144,24 @@ void setup()
   Serial.println();
 }
 
-void
-loop()
+uint32_t cnt = 0;
+
+void loop()
 {
+  // cnt++;
+#if defined(ARDUINO_ARCH_ESP8266)
+  if (++cnt % 1024 == 0)
+    blink_led(LED_BUILTIN, 1, 100);
+    // blink_led(LED_BUILTIN_AUX, 1, 100);
+#endif
   face0.loop();
   face1.loop();
   face2.loop();
+  // delayMicroseconds(900000); // too slow
   delay(1);
 }
 
+//////////////// ESP8266 ////////////////
 
 // ap1 (IP unset)
 // st0 192.168.1.227
@@ -164,3 +179,20 @@ loop()
 // ndnping /ndn/edu/nycu/udp
 // ndnping /ndn/edu/nthu/udpm
 
+//////////////// ESP32 ////////////////
+
+// st1 192.168.1.177
+// lo0 127.0.0.1
+// 2637 [EthernetTransport] enabled on st1
+// 2647 [UdpTransport] listening on 141.225.11.173:6363
+// 2648 [UdpTransport] joining group 224.0.23.170:56363
+// Please register prefixes on your router:
+// nfdc route add /ndn/edu/nycu/ether/310505030 [ETHER-MCAST-FACEID]
+// nfdc face create udp4://192.168.1.177:6363
+// nfdc route add /ndn/edu/nycu/udp [UDP-UNICAST-FACEID]
+// nfdc route add /ndn/edu/nthu/udpm [UDP-MCAST-FACEID]
+
+// Then you can ping:
+// ndnping /ndn/edu/nycu/ether/310505030
+// ndnping /ndn/edu/nycu/udp
+// ndnping /ndn/edu/nthu/udpm

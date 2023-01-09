@@ -22,7 +22,9 @@ const char *PREFIX1 = "/ndn/edu/nycu/udp/ping";             // 陽交
 const char *PREFIX2 = "/ndn/edu/ucla/ping";                 // UCLA
 const char *PREFIX3 = "/ndn/edu/nthu/udpm/ping";            // 清華
 
+// const char* NDN_ROUTER_HOST = "141.225.11.173";
 const char* NDN_ROUTER_HOST = "192.168.1.227";
+// const char* NDN_ROUTER_HOST = "192.168.1.177";
 
 esp8266ndn::UdpTransport transport;
 ndnph::Face face(transport);
@@ -33,7 +35,7 @@ ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face);
 ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face);
 ndnph::PingClient client3(ndnph::Name::parse(region, PREFIX3), face);
 
-void blink_led(uint8_t led=LED_BUILTIN_AUX, int8_t times=3, int16_t miniseconds=40)
+void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
 {
   for(int i=0; i<times; i++){
     digitalWrite(led, LOW);
@@ -116,8 +118,6 @@ void loop()
   face.loop();
   delayMicroseconds(1000);
 
-  // temp = nRxData_1;
-
   static uint16_t i = 0;
   if (++i % 1024 == 0)
   {
@@ -141,15 +141,13 @@ void loop()
     // Serial.print(F(", temp="));  Serial.print(temp);
 
 
+#if defined(ARDUINO_ARCH_ESP8266)
     if (nRxData_1)
     {
       blink_led(LED_BUILTIN, 1, 100);
       blink_led(LED_BUILTIN_AUX, 2, 20);
     }
-    // nRxData_0 = 0;
-    // nRxData_1 = 0;
-    // nRxData_2 = 0;
-    // nRxData_3 = 0;
+#endif
   }
 }
 
