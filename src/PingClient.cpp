@@ -18,7 +18,6 @@ const char *WIFI_PASS = __WIFI_PASSWORD;
 
 const char* NDN_ROUTER_HOST_WAN = "titan.cs.memphis.edu";
 // const char* NDN_ROUTER_HOST_WAN = "hobo.cs.arizona.edu";
-// const char* NDN_ROUTER_HOST_WAN = "ndn-fch.named-data.net";
 // const char* NDN_ROUTER_HOST_WAN = "suns.cs.ucla.edu";
 
 const char* NDN_ROUTER_HOST_LAN = "192.168.1.227";
@@ -42,7 +41,7 @@ ndnph::Face face_udp_WAN(transport_udp_WAN);
 ndnph::StaticRegion<2048> region;
 ndnph::PingClient client0(ndnph::Name::parse(region, PREFIX0), face_ether, 800);
 ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face_udp, 500);
-ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face_udp_WAN, 1000);
+ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face_udp_WAN, 4000);
 ndnph::PingClient client3(ndnph::Name::parse(region, PREFIX3), face_udpm, 700);
 
 void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
@@ -73,17 +72,17 @@ void setup()
   Serial.println(F("WiFi connected!"));
 #if defined(ARDUINO_ARCH_ESP8266)
 #define TRIGGER_LED0 D5
-#define TRIGGER_LED1 LED_BUILTIN     // gpio 2
-#define TRIGGER_LED2 LED_BUILTIN_AUX // gpio 16
+#define TRIGGER_LED1 LED_BUILTIN      // gpio 2
+#define TRIGGER_LED2 LED_BUILTIN_AUX  // gpio 16
 #define TRIGGER_LED3 D6
-  pinMode(TRIGGER_LED0, OUTPUT);
-  pinMode(TRIGGER_LED1, OUTPUT);
-  pinMode(TRIGGER_LED2, OUTPUT); // for UCLA NDN-router
-  pinMode(TRIGGER_LED3, OUTPUT);
-  blink_led(TRIGGER_LED0, 2, 150);
-  blink_led(TRIGGER_LED1, 2, 150);
-  blink_led(TRIGGER_LED2, 1, 150);
-  blink_led(TRIGGER_LED3, 1, 150);
+  pinMode(TRIGGER_LED0, OUTPUT);      // ether-yello
+  pinMode(TRIGGER_LED1, OUTPUT);      // udp-blue (onboard)
+  pinMode(TRIGGER_LED2, OUTPUT);      // udp_WNA-blue[for UCLA NDN-router]
+  pinMode(TRIGGER_LED3, OUTPUT);      // udpm-red
+  blink_led(TRIGGER_LED0, 2, 200);
+  blink_led(TRIGGER_LED1, 2, 200);
+  blink_led(TRIGGER_LED2, 2, 200);
+  blink_led(TRIGGER_LED3, 2, 200);
   BearSSL::WiFiClientSecure fchSocketClient;
   fchSocketClient.setInsecure();
 #elif defined(ARDUINO_ARCH_ESP32)
@@ -137,14 +136,12 @@ void printCounters(const char *prefix, const ndnph::PingClient &client)
 uint16_t led_ticks0, led_ticks1, led_ticks2, led_ticks3 = 0;
 uint32_t nRxData_0, nRxData_1, nRxData_2, nRxData_3 = 0;
 uint32_t temp_0, temp_1, temp_2, temp_3 = 0;
-// uint32_t temp = 0;
 bool _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3 = true;
-// bool print_lock = true;
 bool print_lock0, print_lock1, print_lock2, print_lock3 = true;
 
 const uint32_t interval_trig = 1;     // interval at which to trig (milliseconds)
 uint32_t previousMillis_trig = 0;     // will store the time of the last Trigger was updated
-const uint32_t interval_print = 1000; // interval at which to print (milliseconds)
+const uint32_t interval_print = 1020; // interval at which to print (milliseconds)
 uint32_t previousMillis_print = 0;    // will store the time of the last print()
 
 
@@ -200,43 +197,10 @@ void loop()
     nRxData_2 = RxCounter(client2);
     nRxData_3 = RxCounter(client3);
 
-    // if (++temp_1 <= nRxData_1){           // check the change of the value
-    //   temp_1 = nRxData_1;
-    //   nRxData_1 = 1;
-    //   if (led_ticks <= 0)
-    //     led_ticks = 100;                            // register the trigger
-    // }else{
-    //   nRxData_1 = 0;
-    //   temp_1--;
-    // }
-
     CheckAndTrig(temp_0, nRxData_0, led_ticks0, TRIGGER_LED0, print_lock0, _nRxData_0);
     CheckAndTrig(temp_1, nRxData_1, led_ticks1, TRIGGER_LED1, print_lock1, _nRxData_1);
     CheckAndTrig(temp_2, nRxData_2, led_ticks2, TRIGGER_LED2, print_lock2, _nRxData_2);
     CheckAndTrig(temp_3, nRxData_3, led_ticks3, TRIGGER_LED3, print_lock3, _nRxData_3);
-
-
-    // if (led_ticks > 0){
-    //   digitalWrite(TRIGGER_LED1, LOW);   // turn on the LED
-    //   if (print_lock) {
-    //     _nRxData_0 = true;
-    //     _nRxData_1 = true;
-    //     _nRxData_2 = true;
-    //     _nRxData_3 = true;
-    //     print_lock = false;   // 上鎖，防止在print()之前就被改掉
-    //     }
-    //   led_ticks--;
-    // }else{
-    //   digitalWrite(TRIGGER_LED1, HIGH);  // turn off the LED
-    //   if (print_lock) {
-    //     _nRxData_0 = false;
-    //     _nRxData_1 = false;
-    //     _nRxData_2 = false;
-    //     _nRxData_3 = false;
-    //     print_lock = false;   // 上鎖，防止在print()之前就被改掉
-    //     }
-    // }
-
 
     if (currentMillis - previousMillis_print >= interval_print) 
     {
@@ -246,10 +210,8 @@ void loop()
       printCounters(PREFIX2, client2);
       printCounters(PREFIX3, client3);
       Serial.print(F("Current Rx---------"));
-      // Serial.printf("[%d, %d, %d, %d]", nRxData_0, nRxData_1, nRxData_2, nRxData_3);
       Serial.printf("[%d, %d, %d, %d]", _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3);
       Serial.println(F("----------------"));
-      // print_lock = true;  // 解鎖，print()之後就開放修改
       print_lock0 = true;  // 解鎖，print()之後就開放修改
       print_lock1 = true;  // 解鎖，print()之後就開放修改
       print_lock2 = true;  // 解鎖，print()之後就開放修改
