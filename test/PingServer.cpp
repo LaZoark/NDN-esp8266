@@ -14,25 +14,25 @@ const char* WIFI_PASS = __WIFI_PASSWORD;
 
 // const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
 const char* NDN_ROUTER_HOST = "192.168.1.227";  // server-esp8266
+const uint16_t LISTEN_PORT = 6364;
+ndnph::StaticRegion<2048> region;
 
-ndnph::StaticRegion<1024> region;
-
-esp8266ndn::EthernetTransport transport0;
-ndnph::Face face0(transport0);
+esp8266ndn::EthernetTransport transport_ether;
+ndnph::Face face_ether(transport_ether);
 const char* PREFIX0 = "/ndn/edu/nycu/ether/310505030/ping";
-ndnph::PingServer server0(ndnph::Name::parse(region, PREFIX0), face0);
+ndnph::PingServer server_ether(ndnph::Name::parse(region, PREFIX0), face_ether);
 
 std::array<uint8_t, esp8266ndn::UdpTransport::DefaultMtu> udpBuffer;
-esp8266ndn::UdpTransport transport1(udpBuffer);
-ndnph::Face face1(transport1);
+esp8266ndn::UdpTransport transport_udp(udpBuffer);
+ndnph::Face face_udp(transport_udp);
 const char* PREFIX1 = "/ndn/edu/nycu/udp/ping";
-ndnph::PingServer server1(ndnph::Name::parse(region, PREFIX1), face1);
+ndnph::PingServer server_udp(ndnph::Name::parse(region, PREFIX1), face_udp);
 
 esp8266ndn::UdpTransport transport2(udpBuffer);
 ndnph::transport::ForceEndpointId transport2w(transport2);
-ndnph::Face face2(transport2w);
+ndnph::Face face_udpm(transport2w);
 const char* PREFIX2 = "/ndn/edu/nthu/udpm/ping";
-ndnph::PingServer server2(ndnph::Name::parse(region, PREFIX2), face2);
+ndnph::PingServer server_udpm(ndnph::Name::parse(region, PREFIX2), face_udpm);
 
 void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
 {
@@ -91,7 +91,7 @@ void setup()
 #endif
 
   esp8266ndn::EthernetTransport::listNetifs(Serial);
-  bool ok = transport0.begin(); // select any STA netif
+  bool ok = transport_ether.begin(); // select any STA netif
   if (!ok) {
     Serial.println(F("Ethernet transport initialization failed"));
     ESP.restart();
@@ -103,8 +103,8 @@ void setup()
     ESP.restart();
   }
 
-  // ok = transport1.beginListen();
-  ok = transport1.beginListen(6363, routerIp);
+  // ok = transport_udp.beginListen();
+  ok = transport_udp.beginListen(LISTEN_PORT, routerIp);
   if (!ok) {
     Serial.println(F("UDP unicast transport initialization failed"));
     ESP.restart();
@@ -118,7 +118,6 @@ void setup()
   }
 
   Serial.println(F("Please register prefixes on your router:"));
-  Serial.println(F("nfdc route add /ndn/edu/nycu/ether/310505030 [ETHER-MCAST-FACEID]"));
 #if defined(ARDUINO_ARCH_ESP8266)
   for (auto a : addrList) {
     if (a.isV4()) {
@@ -128,16 +127,17 @@ void setup()
     }
     Serial.print(a.addr());
     if (a.isV4()) {
-      Serial.println(F(":6363"));
+      Serial.printf(":%d", LISTEN_PORT);
     } else {
-      Serial.println(F("]:6363"));
+      Serial.printf("]:%d", LISTEN_PORT);
     }
   }
 #elif defined(ARDUINO_ARCH_ESP32)
   Serial.print(F("nfdc face create udp4://"));
   Serial.print(WiFi.localIP());
-  Serial.println(F(":6363"));
+  Serial.printf(":%d", LISTEN_PORT);
 #endif
+  Serial.println(F("nfdc route add /ndn/edu/nycu/ether/310505030 [ETHER-MCAST-FACEID]"));
   Serial.println(F("nfdc route add /ndn/edu/nycu/udp [UDP-UNICAST-FACEID]"));
   Serial.println(F("nfdc route add /ndn/edu/nthu/udpm [UDP-MCAST-FACEID]"));
   Serial.println();
@@ -163,9 +163,9 @@ void loop()
   }
   if (cnt > 0){
     digitalWrite(LED_BUILTIN, LOW);   // turn on the LED
-    face0.loop();
-    face1.loop();
-    face2.loop();
+    face_ether.loop();
+    face_udp.loop();
+    face_udpm.loop();
     cnt = 0;                          // release the trigger
   }else{
     digitalWrite(LED_BUILTIN, HIGH);  // turn off the LED

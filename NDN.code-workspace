@@ -20,7 +20,12 @@
 			"memory": "cpp",
 			"random": "cpp",
 			"initializer_list": "cpp",
-			"*.inc": "cpp"
+			"*.inc": "cpp",
+			"bitset": "cpp",
+			"istream": "cpp",
+			"ranges": "cpp",
+			"streambuf": "cpp",
+			"tuple": "cpp"
 		}
 	}
 }
