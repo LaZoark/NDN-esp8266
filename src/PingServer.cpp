@@ -7,6 +7,8 @@
 #include <esp8266ndn.h>
 #include "myconfig.h"
 
+#define BTN_PIN D5 // GPIO 14
+
 const char* WIFI_SSID = __WIFI_SSID;
 const char* WIFI_PASS = __WIFI_PASSWORD;
 
@@ -44,6 +46,8 @@ void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
 
 void setup()
 {
+  pinMode(BTN_PIN, INPUT);
+
   Serial.begin(115200);
   Serial.println();
   esp8266ndn::setLogOutput(Serial);
@@ -150,15 +154,25 @@ void loop()
 {
   // cnt++;
 #if defined(ARDUINO_ARCH_ESP8266)
-  if (++cnt % 1024 == 0)
-    blink_led(LED_BUILTIN, 1, 100);
-    // blink_led(LED_BUILTIN_AUX, 1, 100);
+  // if (++cnt % 1024 == 0)
+  //   blink_led(LED_BUILTIN, 1, 100);
 #endif
-  face0.loop();
-  face1.loop();
-  face2.loop();
+
+  if (digitalRead(BTN_PIN) == true){
+    ++cnt;                            // register the trigger
+  }
+  if (cnt > 0){
+    digitalWrite(LED_BUILTIN, LOW);   // turn on the LED
+    face0.loop();
+    face1.loop();
+    face2.loop();
+    cnt = 0;                          // release the trigger
+  }else{
+    digitalWrite(LED_BUILTIN, HIGH);  // turn off the LED
+  }
+
   // delayMicroseconds(900000); // too slow
-  delay(1);
+  // delay(1);
 }
 
 //////////////// ESP8266 ////////////////

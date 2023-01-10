@@ -144,8 +144,8 @@ void loop()
 #if defined(ARDUINO_ARCH_ESP8266)
     if (nRxData_1)
     {
-      blink_led(LED_BUILTIN, 1, 100);
-      blink_led(LED_BUILTIN_AUX, 2, 20);
+      blink_led(LED_BUILTIN, 2, 50);
+      blink_led(LED_BUILTIN_AUX, 1, 20);
     }
 #endif
   }
