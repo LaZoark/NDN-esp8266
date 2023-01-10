@@ -40,10 +40,10 @@ ndnph::Face face_udp(transport_udp);
 ndnph::Face face_udpm(transport_udpm);
 ndnph::Face face_udp_WAN(transport_udp_WAN);
 ndnph::StaticRegion<2048> region;
-ndnph::PingClient client0(ndnph::Name::parse(region, PREFIX0), face_ether, 400);
-ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face_udp, 400);
+ndnph::PingClient client0(ndnph::Name::parse(region, PREFIX0), face_ether, 800);
+ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face_udp, 500);
 ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face_udp_WAN, 1000);
-ndnph::PingClient client3(ndnph::Name::parse(region, PREFIX3), face_udpm, 400);
+ndnph::PingClient client3(ndnph::Name::parse(region, PREFIX3), face_udpm, 700);
 
 void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
 {
@@ -72,16 +72,16 @@ void setup()
   }
   Serial.println(F("WiFi connected!"));
 #if defined(ARDUINO_ARCH_ESP8266)
-  #define TRIGGER_LED0 LED_BUILTIN_AUX    // gpio 16
-  #define TRIGGER_LED1 LED_BUILTIN        // gpio 2
-  #define TRIGGER_LED2 D5
-  #define TRIGGER_LED3 D6
+#define TRIGGER_LED0 D5
+#define TRIGGER_LED1 LED_BUILTIN     // gpio 2
+#define TRIGGER_LED2 LED_BUILTIN_AUX // gpio 16
+#define TRIGGER_LED3 D6
   pinMode(TRIGGER_LED0, OUTPUT);
   pinMode(TRIGGER_LED1, OUTPUT);
-  pinMode(TRIGGER_LED2, OUTPUT);
+  pinMode(TRIGGER_LED2, OUTPUT); // for UCLA NDN-router
   pinMode(TRIGGER_LED3, OUTPUT);
-  blink_led(TRIGGER_LED0, 1, 150);
-  blink_led(TRIGGER_LED1, 1, 150);
+  blink_led(TRIGGER_LED0, 2, 150);
+  blink_led(TRIGGER_LED1, 2, 150);
   blink_led(TRIGGER_LED2, 1, 150);
   blink_led(TRIGGER_LED3, 1, 150);
   BearSSL::WiFiClientSecure fchSocketClient;

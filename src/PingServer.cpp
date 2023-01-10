@@ -7,7 +7,6 @@
 #include <esp8266ndn.h>
 #include "myconfig.h"
 
-#define BTN_PIN D5 // GPIO 14
 
 const char* WIFI_SSID = __WIFI_SSID;
 const char* WIFI_PASS = __WIFI_PASSWORD;
@@ -15,7 +14,7 @@ const char* WIFI_PASS = __WIFI_PASSWORD;
 // const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
 const char* NDN_ROUTER_HOST = "192.168.1.227";  // server-esp8266
 const uint16_t LISTEN_PORT = 6364;
-ndnph::StaticRegion<2048> region;
+ndnph::StaticRegion<4096> region;
 
 esp8266ndn::EthernetTransport transport_ether;
 ndnph::Face face_ether(transport_ether);
@@ -46,8 +45,6 @@ void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
 
 void setup()
 {
-  pinMode(BTN_PIN, INPUT);
-
   Serial.begin(115200);
   Serial.println();
   esp8266ndn::setLogOutput(Serial);
@@ -62,28 +59,37 @@ void setup()
   }
 
 #if defined(ARDUINO_ARCH_ESP8266)
-  {// wait until no new address showing up in 1000ms
-    pinMode(LED_BUILTIN_AUX, OUTPUT); // gpio 16
-    pinMode(LED_BUILTIN, OUTPUT);     // gpio 2
-    blink_led(LED_BUILTIN, 2, 100);
-    blink_led(LED_BUILTIN_AUX, 1, 150);
-    blink_led(LED_BUILTIN, 1, 100);
-    blink_led(LED_BUILTIN_AUX, 2, 150);
+  { // wait until no new address showing up in 1000ms
+// #define TRIGGER_LED0 LED_BUILTIN_AUX    // gpio 16
+#define TRIGGER_LED0 D3             // yellow
+#define TRIGGER_LED1 LED_BUILTIN    // blue (onboard)
+#define TRIGGER_LED3 D6             // red
+    pinMode(TRIGGER_LED0, OUTPUT);  // GPIO 0
+    pinMode(TRIGGER_LED1, OUTPUT);  // GPIO 2
+    pinMode(TRIGGER_LED3, OUTPUT);  // GPIO 12
+    blink_led(TRIGGER_LED0, 2, 200);
+    blink_led(TRIGGER_LED1, 2, 200);
+    blink_led(TRIGGER_LED3, 2, 200);
+#define BTN_PIN0 D5                 // GPIO 14
+#define BTN_PIN1 D1                 // GPIO 5
+#define BTN_PIN3 D2                 // GPIO 4
+    pinMode(BTN_PIN0, INPUT);       // for yellow
+    pinMode(BTN_PIN1, INPUT);       // for blue (onboard)
+    pinMode(BTN_PIN3, INPUT);       // for red
+
 #if defined(LWIP_IPV6)
-    {
-      size_t nAddrPrev = 0, nAddr = 0;
-      do
-      {
-        delay(1000);
-        nAddrPrev = nAddr;
-        nAddr = 0;
-        for (auto a : addrList)
-        {
-          (void)a;
-          ++nAddr;
-        }
-      } while (nAddrPrev == nAddr);
-    }
+{
+  size_t nAddrPrev = 0, nAddr = 0;
+  do{
+    delay(1000);
+    nAddrPrev = nAddr;
+    nAddr = 0;
+    for (auto a : addrList){
+      (void)a;
+      ++nAddr;
+      }
+    } while (nAddrPrev == nAddr);
+}
 #endif
   }
 #else
@@ -148,32 +154,47 @@ void setup()
   Serial.println();
 }
 
-uint32_t cnt = 0;
+uint32_t btn_ticks0, btn_ticks1, btn_ticks3 = 0;
 
 void loop()
 {
-  // cnt++;
-#if defined(ARDUINO_ARCH_ESP8266)
-  // if (++cnt % 1024 == 0)
-  //   blink_led(LED_BUILTIN, 1, 100);
-#endif
-
-  if (digitalRead(BTN_PIN) == true){
-    ++cnt;                            // register the trigger
+  if (digitalRead(BTN_PIN0) == true){
+    ++btn_ticks0;                       // register the trigger
   }
-  if (cnt > 0){
-    digitalWrite(LED_BUILTIN, LOW);   // turn on the LED
+  if (btn_ticks0 > 0){
+    digitalWrite(TRIGGER_LED0, LOW);    // turn on the LED
     face_ether.loop();
-    face_udp.loop();
-    face_udpm.loop();
-    cnt = 0;                          // release the trigger
+    btn_ticks0 = 0;                     // release the trigger
   }else{
-    digitalWrite(LED_BUILTIN, HIGH);  // turn off the LED
+    digitalWrite(TRIGGER_LED0, HIGH);   // turn off the LED
   }
+
+  if (digitalRead(BTN_PIN1) == true){
+    ++btn_ticks1;                       // register the trigger
+  }
+  if (btn_ticks1 > 0){
+    digitalWrite(TRIGGER_LED1, LOW);    // turn on the LED
+    face_udp.loop();
+    btn_ticks1 = 0;                     // release the trigger
+  }else{
+    digitalWrite(TRIGGER_LED1, HIGH);   // turn off the LED
+  }
+
+  if (digitalRead(BTN_PIN3) == true){
+    ++btn_ticks3;                       // register the trigger
+  }
+  if (btn_ticks3 > 0){
+    digitalWrite(TRIGGER_LED3, LOW);    // turn on the LED
+    face_udpm.loop();
+    btn_ticks3 = 0;                     // release the trigger
+  }else{
+    digitalWrite(TRIGGER_LED3, HIGH);   // turn off the LED
+  }
+
+}
 
   // delayMicroseconds(900000); // too slow
   // delay(1);
-}
 
 //////////////// ESP8266 ////////////////
 
