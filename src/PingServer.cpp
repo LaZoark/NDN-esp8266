@@ -7,12 +7,14 @@
 #include <esp8266ndn.h>
 #include "myconfig.h"
 
+#if defined(USE_AS_SERVER) 
 
 const char* WIFI_SSID = __WIFI_SSID;
 const char* WIFI_PASS = __WIFI_PASSWORD;
 
-// const char* NDN_ROUTER_HOST = "titan.cs.memphis.edu";
-const char* NDN_ROUTER_HOST = "192.168.1.227";  // server-esp8266
+const char* NDN_ROUTER_HOST_WAN = "titan.cs.memphis.edu";
+const char* NDN_ROUTER_HOST_LAN = "192.168.1.227";  // server-esp8266
+
 const uint16_t LISTEN_PORT = 6364;
 ndnph::StaticRegion<4096> region;
 
@@ -104,13 +106,18 @@ void setup()
   }
 
   IPAddress routerIp;
-  if (!WiFi.hostByName(NDN_ROUTER_HOST, routerIp)) {
-    Serial.println("cannot resolve router IP");
+  if (!WiFi.hostByName(NDN_ROUTER_HOST_LAN, routerIp)) {
+    Serial.println("[LAN] cannot resolve router IP");
+    ESP.restart();
+  }
+  IPAddress routerIp_WAN;
+  if (!WiFi.hostByName(NDN_ROUTER_HOST_WAN, routerIp_WAN)) {
+    Serial.println("[WAN] cannot resolve router IP");
     ESP.restart();
   }
 
-  // ok = transport_udp.beginListen();
-  ok = transport_udp.beginListen(LISTEN_PORT, routerIp);
+  // ok = transport_udp.beginListen(LISTEN_PORT, routerIp);
+  ok = transport_udp.beginListen(LISTEN_PORT, routerIp_WAN);
   if (!ok) {
     Serial.println(F("UDP unicast transport initialization failed"));
     ESP.restart();
@@ -143,7 +150,7 @@ void setup()
   Serial.print(WiFi.localIP());
   Serial.printf(":%d", LISTEN_PORT);
 #endif
-  Serial.println(F("nfdc route add /ndn/edu/nycu/ether/310505030 [ETHER-MCAST-FACEID]"));
+  Serial.println(F("\nnfdc route add /ndn/edu/nycu/ether/310505030 [ETHER-MCAST-FACEID]"));
   Serial.println(F("nfdc route add /ndn/edu/nycu/udp [UDP-UNICAST-FACEID]"));
   Serial.println(F("nfdc route add /ndn/edu/nthu/udpm [UDP-MCAST-FACEID]"));
   Serial.println();
@@ -192,6 +199,8 @@ void loop()
   }
 
 }
+
+#endif
 
   // delayMicroseconds(900000); // too slow
   // delay(1);

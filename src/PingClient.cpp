@@ -8,6 +8,8 @@
 #include <esp8266ndn.h>
 #include "myconfig.h"
 
+#if defined(USE_AS_CLIENT) 
+
 const char *WIFI_SSID = __WIFI_SSID;
 const char *WIFI_PASS = __WIFI_PASSWORD;
 
@@ -219,6 +221,7 @@ void loop()
     }
   }
 }
+#endif
 
 
     // if (++temp <= nRxData_1){
