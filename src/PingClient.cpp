@@ -8,6 +8,8 @@
 #include <esp8266ndn.h>
 #include "myconfig.h"
 
+#if defined(USE_AS_CLIENT) 
+
 const char *WIFI_SSID = __WIFI_SSID;
 const char *WIFI_PASS = __WIFI_PASSWORD;
 
@@ -113,6 +115,7 @@ void setup()
   transport_udp_WAN.beginTunnel(routerIp_WAN, 6363, 6363);
   // Transport for the "UDP"
   transport_udp.beginTunnel(routerIp, _remotePort, _localPort);
+  // transport_udp.beginTunnel(routerIp_WAN, _remotePort, _localPort);
   // Transport for the "UDP multicast"
   transport_udpm.beginMulticast(); // default group IP=(224, 0, 23, 170)
   // Transport for the "Ethernet"
@@ -219,32 +222,7 @@ void loop()
     }
   }
 }
-
-
-    // if (++temp <= nRxData_1){
-    //   temp = nRxData_1;
-    //   nRxData_1 = 1;
-    // }else{
-    //   nRxData_1 = 0;
-    //   temp--;
-    // }
-    // if (nRxData_1){
-    //   ++led_ticks;                            // register the trigger
-    // }
-    // if (led_ticks > 0){
-    //       digitalWrite(TRIGGER_LED, LOW);   // turn on the LED
-    //       ++led_ticks;                          // release the trigger
-    //     }else{
-    //       digitalWrite(TRIGGER_LED, HIGH);  // turn off the LED
-    //     }
-
-
-      // Serial.print(F("Current Rx---------"));
-      // Serial.print(F("["));   Serial.print(nRxData_0);
-      // Serial.print(F(", "));  Serial.print(nRxData_1);
-      // Serial.print(F(", "));  Serial.print(nRxData_2);
-      // Serial.print(F(", "));  Serial.print(nRxData_3);
-      // Serial.println(F("]----------------"));
+#endif
 
 
 // #################### local ####################
