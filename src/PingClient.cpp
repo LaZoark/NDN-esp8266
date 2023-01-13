@@ -1,3 +1,14 @@
+/* This is a PingClient, which plays the role of the "data consumer" in NDN.
+ * Since the communication in NDN is driven by the receiving end, a consumer must send out an
+ * "Interest packet" to receive data.
+ * The "Interest packet" carries a name (prefix) that identifies the desired data.
+ * A router remembers which interface a request came from and looks up the name 
+ * in the Forwarding Information Base (FIB) stocked by name-based routing protocols 
+ * to forward the desired packet.
+ * When the Interest reaches a node containing the requested data, a data packet
+ * containing both the name and content of the data is returned, signed by the producer's key.
+*/
+
 #if defined(ARDUINO_ARCH_ESP8266)
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecureBearSSL.h>
@@ -10,37 +21,51 @@
 
 #if defined(USE_AS_CLIENT) 
 
-const char *WIFI_SSID = __WIFI_SSID;
-const char *WIFI_PASS = __WIFI_PASSWORD;
+const char* WIFI_SSID = __WIFI_SSID;
+const char* WIFI_PASS = __WIFI_PASSWORD;
 
-// NDN ping-server, please refer the following links:
+// NDN Testbed, please refer the following links:
+// http://ndndemo.arl.wustl.edu/
 // https://gerrit.named-data.net/plugins/gitiles/ndn-tools/+/00aa181b4951fd5d9224e934ae08c95b1e167d37/tools/ping/README.md
 // https://www.lists.cs.ucla.edu/pipermail/nfd-dev/2014-August/000361.html
 
-
+// NDN router for WAN. 
+// Due to geography and connectivity, the connection quality will vary with a different server.
 const char* NDN_ROUTER_HOST_WAN = "titan.cs.memphis.edu";
 // const char* NDN_ROUTER_HOST_WAN = "hobo.cs.arizona.edu";
 // const char* NDN_ROUTER_HOST_WAN = "suns.cs.ucla.edu";
 
+// NDN router for LAN, should be the server's IP
 const char* NDN_ROUTER_HOST_LAN = "192.168.1.227";
-// const char* NDN_ROUTER_HOST_LAN = "192.168.1.177";
 
-// const char* PREFIX0 = "/ndn/edu/arizona/ping";
-// const char* PREFIX1 = "/ndn/edu/memphis/ping";
-const char *PREFIX0 = "/ndn/edu/nycu/ether/310505030/ping"; // 陽交 + studientID
-const char *PREFIX1 = "/ndn/edu/nycu/udp/ping";             // 陽交
-const char *PREFIX2 = "/ndn/edu/ucla/ping";                 // UCLA
-const char *PREFIX3 = "/ndn/edu/nthu/udpm/ping";            // 清華
+// The name of the desired data. (Excluding "PREFIX2", all of them are made up by me...)
+const char* PREFIX0 = "/ndn/edu/nycu/ether/310505030/ping"; // 陽交 + my studientID
+const char* PREFIX1 = "/ndn/edu/nycu/udp/ping";             // 陽交
+const char* PREFIX2 = "/ndn/edu/ucla/ping";                 // UCLA
+const char* PREFIX3 = "/ndn/edu/nthu/udpm/ping";            // 清華
 
+// The following are 4 transports
+// Ethernet unicast
 esp8266ndn::EthernetTransport transport_ether;
+// UDP/IPv4 unicast
 esp8266ndn::UdpTransport transport_udp;
+// UDP/IPv4 multicast
 esp8266ndn::UdpTransport transport_udpm;
+// UDP/IPv4 unicast for WAN
 esp8266ndn::UdpTransport transport_udp_WAN;
+
+// The following are 4 transports
 ndnph::Face face_ether(transport_ether);
 ndnph::Face face_udp(transport_udp);
 ndnph::Face face_udpm(transport_udpm);
 ndnph::Face face_udp_WAN(transport_udp_WAN);
+
 ndnph::StaticRegion<2048> region;
+
+// Periodically transmit Interests to test reachability. 
+// This is a simple ping client implementation that can only keep one pending Interest.
+// After sending a probe Interest, responses to previous Interests are no longer accepted. 
+// Therefore, interval must be greater than RTT, otherwise this client cannot receive any Data.
 ndnph::PingClient client0(ndnph::Name::parse(region, PREFIX0), face_ether, 800);
 ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face_udp, 500);
 ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face_udp_WAN, 4000);
@@ -85,8 +110,8 @@ void setup()
   blink_led(TRIGGER_LED1, 2, 200);
   blink_led(TRIGGER_LED2, 2, 200);
   blink_led(TRIGGER_LED3, 2, 200);
-  BearSSL::WiFiClientSecure fchSocketClient;
-  fchSocketClient.setInsecure();
+  // BearSSL::WiFiClientSecure fchSocketClient;
+  // fchSocketClient.setInsecure();
 #elif defined(ARDUINO_ARCH_ESP32)
   delay(500);
   WiFiClientSecure fchSocketClient;
@@ -109,25 +134,31 @@ void setup()
   //   }
   // transport_udp_WAN.beginTunnel(fchResponse.ip);
 
-  uint16_t _remotePort = 6364;    // Since we built 2 UDP tunnels, each must use different port.
+  uint16_t _remotePort = 6364;    // Since we built 2 UDP tunnels, each required a different port.
   uint16_t _localPort = 6364;
   // Transport for the "UDP" (Wide Area Network)
   transport_udp_WAN.beginTunnel(routerIp_WAN, 6363, 6363);
-  // Transport for the "UDP"
+  // Transport for the "UDP" (Local Area Network)
   transport_udp.beginTunnel(routerIp, _remotePort, _localPort);
-  // transport_udp.beginTunnel(routerIp_WAN, _remotePort, _localPort);
   // Transport for the "UDP multicast"
   transport_udpm.beginMulticast(); // default group IP=(224, 0, 23, 170)
   // Transport for the "Ethernet"
   transport_ether.begin();
 }
 
+/// @brief It returns the number of the received data.
+/// @param client specify the client to monitor
+/// @return cnt.nRxData
 uint32_t RxCounter(const ndnph::PingClient &client)
 {
   auto cnt = client.readCounters();
   return cnt.nRxData;
 }
-void printCounters(const char *prefix, const ndnph::PingClient &client)
+
+/// @brief Print the formatted report about Tx & Rx.
+/// @param prefix specify the prefix to show
+/// @param client specify the client to monitor
+void printCounters(const char* prefix, const ndnph::PingClient &client)
 {
   auto cnt = client.readCounters();
   Serial.printf("[I/D]: %5d/%-5d %6.2f%%  %3s\n", 
@@ -136,18 +167,13 @@ void printCounters(const char *prefix, const ndnph::PingClient &client)
                  100.0*cnt.nRxData / cnt.nTxInterests, prefix);
 }
 
-uint16_t led_ticks0, led_ticks1, led_ticks2, led_ticks3 = 0;
-uint32_t nRxData_0, nRxData_1, nRxData_2, nRxData_3 = 0;
-uint32_t temp_0, temp_1, temp_2, temp_3 = 0;
-bool _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3 = true;
-bool print_lock0, print_lock1, print_lock2, print_lock3 = true;
-
-const uint32_t interval_trig = 1;     // interval at which to trig (milliseconds)
-uint32_t previousMillis_trig = 0;     // will store the time of the last Trigger was updated
-const uint32_t interval_print = 1020; // interval at which to print (milliseconds)
-uint32_t previousMillis_print = 0;    // will store the time of the last print()
-
-
+/// @brief Modulize the proccess of 
+/// @param temp 
+/// @param nRxData 
+/// @param _led_ticks 
+/// @param TRIGGER_LED 
+/// @param _print_lock 
+/// @param _nRxData_x 
 void CheckAndTrig(uint32_t &temp, uint32_t &nRxData, uint16_t &_led_ticks,
                   int TRIGGER_LED, bool &_print_lock, bool &_nRxData_x)
 {
@@ -170,19 +196,29 @@ void CheckAndTrig(uint32_t &temp, uint32_t &nRxData, uint16_t &_led_ticks,
   //   }
   if (_led_ticks > 0){
     digitalWrite(TRIGGER_LED, _HIGH);   // turn on the LED
-    if (_print_lock) {
+    if (!_print_lock) {
       _nRxData_x = true;
-      _print_lock = false;   // 上鎖，防止在print()之前就被改掉
+      _print_lock = true;   // Lock. Prevent changing before print()
       }
     _led_ticks--;
   }else{
     digitalWrite(TRIGGER_LED, _LOW);  // turn off the LED
-    if (_print_lock) {
+    if (!_print_lock) 
       _nRxData_x = false;
-      _print_lock = false;   // 上鎖，防止在print()之前就被改掉
-      }
   }
 }
+
+
+uint16_t led_ticks0, led_ticks1, led_ticks2, led_ticks3 = 0;
+uint32_t nRxData_0, nRxData_1, nRxData_2, nRxData_3 = 0;
+uint32_t temp_0, temp_1, temp_2, temp_3 = 0;
+bool _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3 = true;
+bool print_lock0, print_lock1, print_lock2, print_lock3 = true;
+
+const uint32_t interval_trig = 1;     // interval at which to trig (milliseconds)
+uint32_t previousMillis_trig = 0;     // will store the time of the last Trigger was updated
+const uint32_t interval_print = 1020; // interval at which to print (milliseconds)
+uint32_t previousMillis_print = 0;    // will store the time of the last print()
 
 void loop()
 {
@@ -215,10 +251,10 @@ void loop()
       Serial.print(F("Current Rx---------"));
       Serial.printf("[%d, %d, %d, %d]", _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3);
       Serial.println(F("----------------"));
-      print_lock0 = true;  // 解鎖，print()之後就開放修改
-      print_lock1 = true;  // 解鎖，print()之後就開放修改
-      print_lock2 = true;  // 解鎖，print()之後就開放修改
-      print_lock3 = true;  // 解鎖，print()之後就開放修改
+      print_lock0 = false;  // 解鎖，print()之後就開放修改
+      print_lock1 = false;  // 解鎖，print()之後就開放修改
+      print_lock2 = false;  // 解鎖，print()之後就開放修改
+      print_lock3 = false;  // 解鎖，print()之後就開放修改
     }
   }
 }
