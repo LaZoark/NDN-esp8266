@@ -3,7 +3,12 @@
 This project uses four esp8266 Dev Boards (NodeMCUs) to construct a Named Data Network (NDN) and demonstrates the communication of packets and data between a producer and a consumer based on the Ping mechanism.  
 There are 3 clients and 1 server in this project. (both can be expanded)  
 
-[very simple demo](https://www.youtube.com/shorts/ip4JU2zqrJk)
+Here comes the code!  
+* [Client.cpp](https://github.com/LaZoark/NDN-esp8266/blob/master/src/PingClient.cpp)  
+* [Server.cpp](https://github.com/LaZoark/NDN-esp8266/blob/master/src/PingServer.cpp)  
+
+DEMO ▶ <https://youtu.be/02WIjpYO2hk>  
+SHORTS ▶ [very simple demo](https://www.youtube.com/shorts/ip4JU2zqrJk)
 
 ## What is NDN?
 
