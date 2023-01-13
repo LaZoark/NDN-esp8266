@@ -71,13 +71,17 @@ ndnph::PingClient client1(ndnph::Name::parse(region, PREFIX1), face_udp, 500);
 ndnph::PingClient client2(ndnph::Name::parse(region, PREFIX2), face_udp_WAN, 4000);
 ndnph::PingClient client3(ndnph::Name::parse(region, PREFIX3), face_udpm, 700);
 
-void blink_led(uint8_t led, int8_t times=3, int16_t miniseconds=40)
+/// @brief Quick way to play with a LED.
+/// @param led_pin Specify the pin of the LED.
+/// @param times The amount of time of the flicking.
+/// @param milli_seconds Expected time to finish the whole action. (10e-3)
+void blink_led(uint8_t led_pin, int8_t times=3, int16_t milli_seconds=40)
 {
   for(int i=0; i<times; i++){
-    digitalWrite(led, LOW);
-    delay(miniseconds/2);
-    digitalWrite(led, HIGH);
-    delay(miniseconds/2);
+    digitalWrite(led_pin, LOW);
+    delay(milli_seconds/2);
+    digitalWrite(led_pin, HIGH);
+    delay(milli_seconds/2);
   }
 }
 
@@ -147,7 +151,7 @@ void setup()
 }
 
 /// @brief It returns the number of the received data.
-/// @param client specify the client to monitor
+/// @param client Specify the client to monitor.
 /// @return cnt.nRxData
 uint32_t RxCounter(const ndnph::PingClient &client)
 {
@@ -156,8 +160,8 @@ uint32_t RxCounter(const ndnph::PingClient &client)
 }
 
 /// @brief Print the formatted report about Tx & Rx.
-/// @param prefix specify the prefix to show
-/// @param client specify the client to monitor
+/// @param prefix Specify the prefix to show.
+/// @param client Specify the client to monitor.
 void printCounters(const char* prefix, const ndnph::PingClient &client)
 {
   auto cnt = client.readCounters();
@@ -167,25 +171,26 @@ void printCounters(const char* prefix, const ndnph::PingClient &client)
                  100.0*cnt.nRxData / cnt.nTxInterests, prefix);
 }
 
-/// @brief Modulize the proccess of 
-/// @param temp 
-/// @param nRxData 
-/// @param _led_ticks 
-/// @param TRIGGER_LED 
-/// @param _print_lock 
-/// @param _nRxData_x 
+/// @brief Detect whether the pending request (Interest Packet) has been responded. 
+/// @param temp A dummy variable for storing the last quantity of the Rx value.
+/// @param nRxData The current quantity of the received Rx.
+/// @param _led_ticks A dummy variable for storing the remaining lifetime of a LED to shine.
+/// @param TRIGGER_LED Specify the LED to display the status.
+/// @param _print_lock A dummy variable for storing lock status.
+/// @param _nRxData_x The current status of Rx.
+/// @param led_lifetime Expected time to keep the LED ON. (In millisecond)
 void CheckAndTrig(uint32_t &temp, uint32_t &nRxData, uint16_t &_led_ticks,
-                  int TRIGGER_LED, bool &_print_lock, bool &_nRxData_x)
+                  int TRIGGER_LED, bool &_print_lock, bool &_nRxData_x, uint16_t led_lifetime=100)
 {
   // auto _LOW = LOW;
   // auto _HIGH = HIGH;
   auto _LOW = HIGH;
   auto _HIGH = LOW;
-  if (++temp <= nRxData){           // check the change of the value
+  if (++temp <= nRxData){               // check the change of the value
     temp = nRxData;
     nRxData = 1;
     if (_led_ticks <= 0)
-      _led_ticks = 100;                            // register the trigger
+      _led_ticks = led_lifetime;        // register the trigger
   }else{
     nRxData = 0;
     temp--;
@@ -198,11 +203,11 @@ void CheckAndTrig(uint32_t &temp, uint32_t &nRxData, uint16_t &_led_ticks,
     digitalWrite(TRIGGER_LED, _HIGH);   // turn on the LED
     if (!_print_lock) {
       _nRxData_x = true;
-      _print_lock = true;   // Lock. Prevent changing before print()
+      _print_lock = true;               // Lock. Prevent changing before print()
       }
     _led_ticks--;
   }else{
-    digitalWrite(TRIGGER_LED, _LOW);  // turn off the LED
+    digitalWrite(TRIGGER_LED, _LOW);    // turn off the LED
     if (!_print_lock) 
       _nRxData_x = false;
   }
@@ -215,10 +220,10 @@ uint32_t temp_0, temp_1, temp_2, temp_3 = 0;
 bool _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3 = true;
 bool print_lock0, print_lock1, print_lock2, print_lock3 = true;
 
-const uint32_t interval_trig = 1;     // interval at which to trig (milliseconds)
-uint32_t previousMillis_trig = 0;     // will store the time of the last Trigger was updated
-const uint32_t interval_print = 1020; // interval at which to print (milliseconds)
-uint32_t previousMillis_print = 0;    // will store the time of the last print()
+const uint32_t interval_trig = 1;       // interval at which to trig (milliseconds)
+uint32_t previousMillis_trig = 0;       // will store the time of the last Trigger was updated
+const uint32_t interval_print = 1020;   // interval at which to print (milliseconds)
+uint32_t previousMillis_print = 0;      // will store the time of the last print()
 
 void loop()
 {
@@ -227,10 +232,10 @@ void loop()
   face_udpm.loop();
   face_ether.loop();
 
-  uint32_t currentMillis = millis();  // current time spanned 
+  uint32_t currentMillis = millis();          // current time spanned 
 
   if (currentMillis - previousMillis_trig >= interval_trig) 
-  { previousMillis_trig = currentMillis;   // save the time of the last Trigger
+  { previousMillis_trig = currentMillis;      // save the time of the last Trigger
     nRxData_0 = RxCounter(client0);
     nRxData_1 = RxCounter(client1);
     nRxData_2 = RxCounter(client2);
@@ -242,8 +247,7 @@ void loop()
     CheckAndTrig(temp_3, nRxData_3, led_ticks3, TRIGGER_LED3, print_lock3, _nRxData_3);
 
     if (currentMillis - previousMillis_print >= interval_print) 
-    {
-      previousMillis_print = currentMillis;   // save the time of the last print
+    { previousMillis_print = currentMillis;   // save the time of the last print
       printCounters(PREFIX0, client0);
       printCounters(PREFIX1, client1);
       printCounters(PREFIX2, client2);
@@ -251,10 +255,10 @@ void loop()
       Serial.print(F("Current Rx---------"));
       Serial.printf("[%d, %d, %d, %d]", _nRxData_0, _nRxData_1, _nRxData_2, _nRxData_3);
       Serial.println(F("----------------"));
-      print_lock0 = false;  // 解鎖，print()之後就開放修改
-      print_lock1 = false;  // 解鎖，print()之後就開放修改
-      print_lock2 = false;  // 解鎖，print()之後就開放修改
-      print_lock3 = false;  // 解鎖，print()之後就開放修改
+      print_lock0 = false;  // Unlock. The value is allowed to be modified after print().
+      print_lock1 = false;  // Unlock. The value is allowed to be modified after print().
+      print_lock2 = false;  // Unlock. The value is allowed to be modified after print().
+      print_lock3 = false;  // Unlock. The value is allowed to be modified after print().
     }
   }
 }

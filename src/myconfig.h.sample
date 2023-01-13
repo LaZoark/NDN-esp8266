@@ -1,4 +1,4 @@
-// #define BOARD_TYPE NodeMCUv2
+// Set up your wifi here
 
 #define __WIFI_SSID u8"xxxx"
 #define __WIFI_PASSWORD u8"xxxx"
