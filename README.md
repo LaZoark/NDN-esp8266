@@ -8,7 +8,8 @@ Here comes the code!
 * [Server.cpp](https://github.com/LaZoark/NDN-esp8266/blob/master/src/PingServer.cpp)  
 
 DEMO ▶ <https://youtu.be/02WIjpYO2hk>  
-SHORTS ▶ [very simple demo](https://www.youtube.com/shorts/ip4JU2zqrJk)
+SHORTS ▶ [very simple demo](https://www.youtube.com/shorts/ip4JU2zqrJk)  
+中文報告 ▶ [基於嵌入式裝置實現NDN (esp8266)](https://energetic-tie-097.notion.site/NDN-esp8266-b812f5e0fcc842afabdae4ff4394e87b)
 
 ## What is NDN?
 
@@ -25,10 +26,10 @@ Overall, NDN aims to provide a more flexible, efficient, and secure networking a
 - [esp8266ndn](https://github.com/yoursunny/esp8266ndn)  
 - [NDNph](https://github.com/yoursunny/NDNph)  
 
-### Papers for refer
+### Papers and source for refer
 
 <https://named-data.net/publications/?limit=1&tgid=&yr=&type=&usr=&auth=&tsr=#tppubs>
-
+<https://irl.cs.ucla.edu/data/files/techreports/ndn0021-10.pdf>
 ---
 
 ### Which PIN should I use?
